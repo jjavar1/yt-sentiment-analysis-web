@@ -1,22 +1,56 @@
 <template>
-<div class="container-fluid">
+  <div class="container-fluid">
     <div class="row">
-        <div class="col-12 p-0">
-            <div class="jumbotron min-vh-100 text-center m-0 d-flex flex-column" >
-                <h1 class="display-1" style="margin-top:130px" >Sentiment</h1>
-                <p style="margin-top:50px">
-                <input type = "text" class = "form-control input-lg mx-auto" placeholder = "youtube addess" style="width: 15%">
-                </p>
-                <p style="margin-top:30px">
-                    <a class="btn btn-primary btn-lg" href="#" role="button">get sentiment</a>
-                </p>
-            </div>
+      <div class="col-12 p-0">
+        <div class="jumbotron min-vh-100 text-center m-0 d-flex flex-column">
+          <h1 class="display-1" style="margin-top: 130px">Sentiment</h1>
+          <form v-on:submit.prevent="generateSentiment">
+          <p style="margin-top: 50px">
+            <input
+              v-model="video_ID"
+              type="text"
+              class="form-control input-lg mx-auto"
+              id="youtube-url"
+              placeholder="youtube addess"
+              style="width: 15%"
+            />
+          </p>
+          <p style="margin-top: 50px">
+            <button class="btn btn-primary btn-lg"
+              >get sentiment</button
+            >
+          </p>
+          <span>{{ commentSentiment }}</span>
+          </form>
+          
         </div>
+      </div>
     </div>
-</div>
+  </div>
 </template>
-<script>
-export default {
-  name: "app"
-};
+<script lang = "ts">
+import axios from 'axios'
+import { defineComponent } from "vue";
+
+export default defineComponent({
+  name: "app",
+
+  data() {
+    return {
+      commentSentiment: [] as string[],
+      video_ID: ''
+    };
+  },
+  methods: {
+    generateSentiment() {
+      axios.get("http://localhost:3000/").then((response) => {
+        
+        this.commentSentiment = response.data.items.snippet.topLevelComment.snippet.textOriginal
+        
+    }).catch((error) => {
+      window.alert(`The api returned an error: ${error}`)
+    })
+}
+  }
+})
 </script>
