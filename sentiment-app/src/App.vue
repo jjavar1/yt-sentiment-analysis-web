@@ -37,16 +37,15 @@ export default defineComponent({
 
   data() {
     return {
-      commentSentiment: [] as string[],
+      commentSentiment: '',
       video_ID: ''
     };
   },
   methods: {
     generateSentiment() {
-      axios.get("http://localhost:3000/").then((response) => {
-        
-        this.commentSentiment = response.data.items.snippet.topLevelComment.snippet.textOriginal
-        
+      
+      axios.post("http://localhost:3000/api/yt", { video_ID: `${this.video_ID}` }).then((response) => {
+       console.log(response.data)
     }).catch((error) => {
       window.alert(`The api returned an error: ${error}`)
     })
