@@ -27,9 +27,7 @@ import (
 //var api_key = "AIzaSyAr7qU0S_FAdk1aFu825DwYrDMYoUj13j4"
 
 func main() {
-	// http.HandleFunc("/api/yt", thumbnailHandler)
-
-	fs := http.FileServer(http.Dir("./sentiment-app/dist"))
+	fs := http.FileServer(http.Dir("../sentiment-app/dist"))
 	http.Handle("/", fs)
 
 	fmt.Println("Server listening on port 3000")
