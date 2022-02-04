@@ -45,7 +45,7 @@ export default defineComponent({
     generateSentiment() {
       
       axios.post("http://localhost:3000/api/yt", { video_ID: `${this.video_ID}` }).then((response) => {
-       console.log(response.data)
+       this.video_ID = response.data.video_ID;
     }).catch((error) => {
       window.alert(`The api returned an error: ${error}`)
     })
