@@ -16,7 +16,7 @@ import (
 	//"io/ioutil"
 	"log"
 	//"os"
-	"github.com/jjavar1/yt-sentiment-analysis-web/back-end/secret_args"
+	secret "github.com/jjavar1/yt-sentiment-analysis-web/back-end"
 	//"io/ioutil"
 
 	"net/http"
@@ -42,7 +42,7 @@ func main() {
 	http.HandleFunc("/api/yt", Data_Handler)
 	fs := http.FileServer(http.Dir("../sentiment-app/dist"))
 	http.Handle("/", fs)
-	secret_args.GetValue()
+	secret.GetValue()
 	fmt.Println("Server listening on port 3000")
 	log.Panic(
 		http.ListenAndServe(":3000", nil),
@@ -65,8 +65,7 @@ func Data_Handler(w http.ResponseWriter, r *http.Request) {
 
 func youtube_handler(url string) {
 
-	var token = "AIzaSyBqMY474aNZQL-2IZR1gHdQwcWfHnfv0uk"
-
+	
 	var get_response = Create_API_Request(url, token)
 	response, err := get_response.Do()
 	if err != nil {
