@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 
 	//"strings"
 
@@ -40,9 +41,8 @@ type ytRequest struct {
 
 func main() {
 	http.HandleFunc("/api/yt", Data_Handler)
-	fs := http.FileServer(http.Dir("../sentiment-app/dist"))
+	fs := http.FileServer(http.Dir("./sentiment-app/dist"))
 	http.Handle("/", fs)
-	secret.GetValue()
 	fmt.Println("Server listening on port 3000")
 	log.Panic(
 		http.ListenAndServe(":3000", nil),
@@ -54,19 +54,23 @@ func Data_Handler(w http.ResponseWriter, r *http.Request) {
 	var data ytRequest
 	err := json.NewDecoder(r.Body).Decode(&data)
 	stringName := data.Video_Id
-	fmt.Println(stringName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		fmt.Println(err)
 		return
 	}
-	Create_API_Request(stringName)
+	Create_API_Request(stringName, secret.GetValue())
 }
 
-func youtube_handler(url string) {
-
-	
-	var get_response = Create_API_Request(url, token)
+func Create_API_Request(video_Id string, token string) {
+	//create empty context
+	ctx := context.Background()
+	//create server
+	create_serve, err := youtube2.NewService(ctx, option.WithAPIKey(token))
+	if err != nil {
+		panic(err.Error)
+	}
+	get_response := create_serve.CommentThreads.List([]string{"snippet"}).MaxResults(5).VideoId(video_Id)
 	response, err := get_response.Do()
 	if err != nil {
 		panic(err.Error())
@@ -77,18 +81,7 @@ func youtube_handler(url string) {
 		item_info := item.Snippet
 		topLevelComment := item_info.TopLevelComment
 		comment_info := topLevelComment.Snippet
-
-		fmt.Println(comment_info.TextDisplay)
+		sr := comment_info.TextDisplay
+		fmt.Println(html.UnescapeString(sr))
 	}
-}
-
-func Create_API_Request(video_Id string, token string) *youtube2.CommentThreadsListCall {
-	//create empty context
-	ctx := context.Background()
-	//create server
-	create_serve, err := youtube2.NewService(ctx, option.WithAPIKey(token))
-	if err != nil {
-		err.Error()
-	}
-	return create_serve.CommentThreads.List([]string{"snippet"}).MaxResults(5).VideoId(video_Id)
 }
