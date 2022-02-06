@@ -1,9 +1,7 @@
 package main
 
 import (
-	//"encoding/json"
-	//"fmt"
-	//"bytes"
+
 	"bufio"
 	"context"
 	"encoding/json"
@@ -11,16 +9,9 @@ import (
 	"html"
 	"strings"
 
-	//"strings"
 
-	//"strings"
-
-	//"io/ioutil"
-	//"os"
-
-	//"io/ioutil"
 	"log"
-	//"os"
+
 	"github.com/cdipaolo/sentiment"
 	secret "github.com/jjavar1/yt-sentiment-analysis-web/back-end"
 
@@ -28,12 +19,9 @@ import (
 
 	"net/http"
 
-	// "net/url"
-	// "os"
-	// "os/user"
-	// "path/filepath"
+
 	"github.com/grassmudhorses/vader-go/lexicon"
-    "github.com/grassmudhorses/vader-go/sentitext"
+	"github.com/grassmudhorses/vader-go/sentitext"
 	"google.golang.org/api/option"
 	youtube2 "google.golang.org/api/youtube/v3"
 )
@@ -60,10 +48,16 @@ var positiveSentimentAverage int
 
 var negativeSentimentAverage int
 
+var totalAverage int
+
 //Initialize vue serve
 func main() {
 	//Handle Get Request
+	
 	http.HandleFunc("/api/yt", Data_Handler)
+	
+	http.HandleFunc("/api/yt/get", Send_Post_Request)
+	
 	fs := http.FileServer(http.Dir("./sentiment-app/dist"))
 	http.Handle("/", fs)
 	fmt.Println("Server listening on port 3000")
@@ -82,13 +76,18 @@ func Data_Handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
+	//reset global values 
+	//change this garbage to a struct later please
+	positiveSentimentML = 0
+	negativeSentimentML = 0
+	positiveSentimentLexi = 0
+	negativeSentimentLexi = 0
+	positiveSentimentAverage = 0
+	negativeSentimentAverage = 0
 	stringName := data.Video_Id
 	Create_API_Request(stringName, secret.GetValue())
 }
 
-func Push_Comment_Results() {
-
-}
 //Create API request to youtube to retrieve comments using secret token and video url
 func Create_API_Request(video_Id string, token string) {
 	//create empty context
@@ -98,7 +97,7 @@ func Create_API_Request(video_Id string, token string) {
 	if err != nil {
 		panic(err.Error)
 	}
-	get_response := create_serve.CommentThreads.List([]string{"snippet"}).MaxResults(5).VideoId(video_Id)
+	get_response := create_serve.CommentThreads.List([]string{"snippet"}).MaxResults(10).VideoId(video_Id)
 	response, err := get_response.Do()
 	if err != nil {
 		panic(err.Error())
@@ -117,6 +116,8 @@ func Create_API_Request(video_Id string, token string) {
 	fmt.Println(res)
 	ML_Approach(res)
 	Rule_Based_Approach(res)
+	Compute_Average()
+	
 }
 
 //Machine learning approach to comments based on sentiment repo and training data
@@ -146,9 +147,10 @@ func ML_Approach(comments string) {
 	fmt.Println(positiveSentimentML, negativeSentimentML)
 }
 
+//Lexicon based approach to get sentiment consensus
 func Rule_Based_Approach(comments string) {
 	scanner := bufio.NewScanner(strings.NewReader(comments))
-	
+	//Scan through comments and incriment sentiment
 	for scanner.Scan() {
 		line := scanner.Text()
 		parsedtext := sentitext.Parse(line, lexicon.DefaultLexicon)
@@ -161,12 +163,29 @@ func Rule_Based_Approach(comments string) {
 		fmt.Println("Review:", sentiment.Compound)
 	}
 	fmt.Println(positiveSentimentLexi, negativeSentimentLexi)
-	Compute_Average()
 }
 
 //Takes average of ML approach and Lexi approach to reach a consensus
+//-1 negative sentiment, 1 positive sentiment
 func Compute_Average() {
 	positiveSentimentAverage = (positiveSentimentML + positiveSentimentLexi) / 2
 	negativeSentimentAverage = (negativeSentimentML + negativeSentimentLexi) / 2
-	fmt.Println(positiveSentimentAverage, negativeSentimentAverage)
+	if (positiveSentimentAverage > negativeSentimentAverage) {
+		totalAverage = 1
+	} else {
+		totalAverage = -1
+	}
+	fmt.Printf("total average:%d",  totalAverage)
+}
+
+func Send_Post_Request(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(totalAverage)
+	struct_data := sentScore{SentScore: totalAverage}
+	fmt.Println(struct_data)
+	json_data, err := json.Marshal(&struct_data)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Fprintf(w, `{ "sentScore": %s }`, json_data)
 }

@@ -4,7 +4,7 @@
       <div class="col-12 p-0">
         <div class="jumbotron min-vh-100 text-center m-0 d-flex flex-column">
           <h1 class="display-1" style="margin-top: 130px">Sentiment</h1>
-          <form v-on:submit.prevent="generateSentiment">
+          <form v-on:submit.prevent="generateSentiment().then(getSentiment())">
           <p style="margin-top: 50px">
             <input
               v-model="video_ID"
@@ -38,18 +38,27 @@ export default defineComponent({
   data() {
     return {
       commentSentiment: '',
-      video_ID: ''
+      video_ID: '',
+      sentimentRank: ''
     };
   },
   methods: {
-    generateSentiment() {
-      
-      axios.post("http://localhost:3000/api/yt", { video_ID: `${this.video_ID}` }).then((response) => {
+    generateSentiment() { 
+      return axios.post("http://localhost:3000/api/yt", { video_ID: `${this.video_ID}` }).then((response) => {
        this.video_ID = response.data.video_ID;
+       console.log(response)
     }).catch((error) => {
       window.alert(`The api returned an error: ${error}`)
     })
-}
+  },
+    getSentiment() {
+      axios.get("http://localhost:3000/api/yt/get").then((response) => {
+        this.sentimentRank = response.data
+        console.log(this.sentimentRank)
+      }).catch((error) => {
+      window.alert(`The api returned an error: ${error}`)
+    })
+    }
   }
 })
 </script>
