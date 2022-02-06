@@ -161,9 +161,12 @@ func Rule_Based_Approach(comments string) {
 		fmt.Println("Review:", sentiment.Compound)
 	}
 	fmt.Println(positiveSentimentLexi, negativeSentimentLexi)
+	Compute_Average()
 }
 
 //Takes average of ML approach and Lexi approach to reach a consensus
 func Compute_Average() {
-	
+	positiveSentimentAverage = (positiveSentimentML + positiveSentimentLexi) / 2
+	negativeSentimentAverage = (negativeSentimentML + negativeSentimentLexi) / 2
+	fmt.Println(positiveSentimentAverage, negativeSentimentAverage)
 }
