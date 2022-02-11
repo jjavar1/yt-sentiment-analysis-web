@@ -20,7 +20,7 @@
               >get sentiment</button
             >
           </p>
-          <span>{{ commentSentiment }}</span>
+          <span>{{ sentimentRank }}</span>
           </form>
           
         </div>
