@@ -4,7 +4,7 @@
       <div class="col-12 p-0">
         <div class="jumbotron min-vh-100 text-center m-0 d-flex flex-column">
           <h1 class="display-1" style="margin-top: 130px">Sentiment</h1>
-          <form v-on:submit.prevent="generateSentiment().then(getSentiment())">
+          <form v-on:submit.prevent="generateSentiment().then(getSentiment)">
           <p style="margin-top: 50px">
             <input
               v-model="video_ID"
@@ -20,7 +20,7 @@
               >get sentiment</button
             >
           </p>
-          <span>{{ sentimentRank }}</span>
+          <span>{{ sentimentComment }}</span>
           </form>
           
         </div>
@@ -39,7 +39,8 @@ export default defineComponent({
     return {
       commentSentiment: '',
       video_ID: '',
-      sentimentRank: ''
+      sentimentRank: 0,
+      sentimentComment: ''
     };
   },
   methods: {
@@ -51,14 +52,23 @@ export default defineComponent({
       window.alert(`The api returned an error: ${error}`)
     })
   },
-    getSentiment() {
+    async getSentiment() {
       axios.get("http://localhost:3000/api/yt/get").then((response) => {
+        this.sentimentRank = response.data.sentScore.SentScore
+        console.log(this.sentimentRank)
+        if (this.sentimentRank == 0) {
+          return
+        } else if (this.sentimentRank == 1) {
+        return this.sentimentComment = `This video has a good sentiment`
+        } else if (this.sentimentRank == -1) {
+        return this.sentimentComment = `This video has a bad sentiment`
+        }
         this.sentimentRank = response.data
         console.log(this.sentimentRank)
       }).catch((error) => {
       window.alert(`The api returned an error: ${error}`)
     })
-    }
+    },
   }
 })
 </script>

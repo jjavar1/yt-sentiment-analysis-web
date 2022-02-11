@@ -8,15 +8,9 @@ import (
 	"fmt"
 	"html"
 	"strings"
-
-
 	"log"
-
 	"github.com/cdipaolo/sentiment"
 	secret "github.com/jjavar1/yt-sentiment-analysis-web/back-end"
-
-	//"io/ioutil"
-
 	"net/http"
 
 
@@ -78,12 +72,7 @@ func Data_Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	//reset global values 
 	//change this garbage to a struct later please
-	positiveSentimentML = 0
-	negativeSentimentML = 0
-	positiveSentimentLexi = 0
-	negativeSentimentLexi = 0
-	positiveSentimentAverage = 0
-	negativeSentimentAverage = 0
+	
 	stringName := data.Video_Id
 	Create_API_Request(stringName, secret.GetValue())
 }
@@ -179,9 +168,14 @@ func Compute_Average() {
 }
 
 func Send_Post_Request(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(totalAverage)
+	positiveSentimentML = 0
+	negativeSentimentML = 0
+	positiveSentimentLexi = 0
+	negativeSentimentLexi = 0
+	positiveSentimentAverage = 0
+	negativeSentimentAverage = 0
 	struct_data := sentScore{SentScore: totalAverage}
-	fmt.Println(struct_data)
+
 	json_data, err := json.Marshal(&struct_data)
 	if err != nil {
 		fmt.Println(err)
