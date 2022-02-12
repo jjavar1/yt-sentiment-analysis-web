@@ -1,18 +1,17 @@
 package main
 
 import (
-
 	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"html"
-	"strings"
 	"log"
+	"net/http"
+	"strings"
+
 	"github.com/cdipaolo/sentiment"
 	secret "github.com/jjavar1/yt-sentiment-analysis-web/back-end"
-	"net/http"
-
 
 	"github.com/grassmudhorses/vader-go/lexicon"
 	"github.com/grassmudhorses/vader-go/sentitext"
@@ -27,7 +26,13 @@ type ytRequest struct {
 
 //Create post struct for front-end
 type sentScore struct {
-	SentScore int
+	SentScore 					int
+	TotalPositiveComments 		int 
+	TotalNegativeComments 		int 	
+	PositiveMLComments 			int	
+	NegativeMLComments 			int
+	MLComments 					[]string
+	LexComments					[]string
 }
 
 var positiveSentimentML int
@@ -42,7 +47,15 @@ var positiveSentimentAverage int
 
 var negativeSentimentAverage int
 
+var totalPositive int
+
+var totalNegative int
+
 var totalAverage int
+
+var mlComments []string
+
+var lexiComments []string
 
 //Initialize vue serve
 func main() {
@@ -102,7 +115,7 @@ func Create_API_Request(video_Id string, token string) {
 		all_decoded = append(all_decoded, decoded, "\n")
 	}
 	res := strings.Join(all_decoded, "")
-	fmt.Println(res)
+
 	ML_Approach(res)
 	Rule_Based_Approach(res)
 	Compute_Average()
@@ -118,27 +131,28 @@ func ML_Approach(comments string) {
 		panic(err)
 	}
 	var analysis *sentiment.Analysis
-
+	s := []string{}
 	//Iterate through the comments and incriment positive or negative score
 	for scanner.Scan() {
 		line := scanner.Text()
 		analysis = model.SentimentAnalysis(line, sentiment.English)
-		var sentiment string
+		
 		if analysis.Score == 1 {
-			sentiment = "positive"
 			positiveSentimentML++
 		} else {
-			sentiment = "negative"
 			negativeSentimentML++
 		}
-		fmt.Printf("Review: %s \n and Sentiment:%s\n", line, sentiment)
+		s = append(s, fmt.Sprintf("Comment: %s \n Score:%d\n", line, analysis.Score))
 	}
+	mlComments = s
 	fmt.Println(positiveSentimentML, negativeSentimentML)
 }
 
 //Lexicon based approach to get sentiment consensus
 func Rule_Based_Approach(comments string) {
 	scanner := bufio.NewScanner(strings.NewReader(comments))
+	
+	s := []string{}
 	//Scan through comments and incriment sentiment
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -149,8 +163,9 @@ func Rule_Based_Approach(comments string) {
 		} else {
 			negativeSentimentLexi++
 		}
-		fmt.Println("Review:", sentiment.Compound)
+		s = append(s, fmt.Sprintf("Comment: %s \n Score:%f\n", line, sentiment.Compound))
 	}
+	lexiComments = s
 	fmt.Println(positiveSentimentLexi, negativeSentimentLexi)
 }
 
@@ -159,6 +174,8 @@ func Rule_Based_Approach(comments string) {
 func Compute_Average() {
 	positiveSentimentAverage = (positiveSentimentML + positiveSentimentLexi) / 2
 	negativeSentimentAverage = (negativeSentimentML + negativeSentimentLexi) / 2
+	totalPositive = (positiveSentimentML + positiveSentimentLexi)
+	totalNegative = (negativeSentimentML + negativeSentimentLexi)
 	if (positiveSentimentAverage > negativeSentimentAverage) {
 		totalAverage = 1
 	} else {
@@ -174,7 +191,14 @@ func Send_Post_Request(w http.ResponseWriter, r *http.Request) {
 	negativeSentimentLexi = 0
 	positiveSentimentAverage = 0
 	negativeSentimentAverage = 0
-	struct_data := sentScore{SentScore: totalAverage}
+	
+	struct_data := sentScore{SentScore: totalAverage,
+	TotalPositiveComments: totalPositive,
+	TotalNegativeComments: totalNegative,
+	PositiveSentimentML: positiveSentimentML,
+	NegativeSentimentML: negativeSentimentML,
+	MLComments: mlComments,
+	LexComments: lexiComments}
 
 	json_data, err := json.Marshal(&struct_data)
 	if err != nil {
