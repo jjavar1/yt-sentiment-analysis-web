@@ -31,6 +31,8 @@ type sentScore struct {
 	TotalNegativeComments 		int 	
 	PositiveMLComments 			int	
 	NegativeMLComments 			int
+	PositiveLexiComments 		int
+	NegativeLexiComments 		int
 	MLComments 					[]string
 	LexComments					[]string
 }
@@ -99,7 +101,7 @@ func Create_API_Request(video_Id string, token string) {
 	if err != nil {
 		panic(err.Error)
 	}
-	get_response := create_serve.CommentThreads.List([]string{"snippet"}).MaxResults(10).VideoId(video_Id)
+	get_response := create_serve.CommentThreads.List([]string{"snippet"}).MaxResults(40).VideoId(video_Id)
 	response, err := get_response.Do()
 	if err != nil {
 		panic(err.Error())
@@ -185,18 +187,15 @@ func Compute_Average() {
 }
 
 func Send_Post_Request(w http.ResponseWriter, r *http.Request) {
-	positiveSentimentML = 0
-	negativeSentimentML = 0
-	positiveSentimentLexi = 0
-	negativeSentimentLexi = 0
-	positiveSentimentAverage = 0
-	negativeSentimentAverage = 0
+	
 	
 	struct_data := sentScore{SentScore: totalAverage,
 	TotalPositiveComments: totalPositive,
 	TotalNegativeComments: totalNegative,
-	PositiveSentimentML: positiveSentimentML,
-	NegativeSentimentML: negativeSentimentML,
+	PositiveMLComments: positiveSentimentML,
+	NegativeMLComments: negativeSentimentML,
+	PositiveLexiComments: positiveSentimentLexi,
+	NegativeLexiComments: negativeSentimentLexi,
 	MLComments: mlComments,
 	LexComments: lexiComments}
 
@@ -205,5 +204,11 @@ func Send_Post_Request(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
+	positiveSentimentML = 0
+	negativeSentimentML = 0
+	positiveSentimentLexi = 0
+	negativeSentimentLexi = 0
+	positiveSentimentAverage = 0
+	negativeSentimentAverage = 0
 	fmt.Fprintf(w, `{ "sentScore": %s }`, json_data)
 }

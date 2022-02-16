@@ -3,7 +3,7 @@
     <div class="row">
       <div class="col-12 p-0">
         <div class="jumbotron min-vh-100 text-center m-0 d-flex flex-column">
-          <h1 class="display-1" style="margin-top: 10px">Sentiment</h1>
+          <h1 class="display-1" style="margin-top: 8px">Sentiment</h1>
           <form v-on:submit.prevent="generateSentiment().then(getSentiment)">
             <p style="margin-top: 30px">
               <input
@@ -12,29 +12,67 @@
                 type="text"
                 class="form-control input-lg mx-auto"
                 id="youtube-url"
-                placeholder="youtube addess"
+                placeholder="youtube addess (last 11 characters)"
                 style="width: 15%"
               />
             </p>
             <p style="margin-top: 30px">
-              <button class="btn btn-primary btn-lg" :disabled="isDisabled" v-on:click="isHidden = !isHidden">get sentiment</button>
+              <button
+                class="btn btn-primary btn-lg"
+                :disabled="isDisabled"
+                v-on:click="isHidden = !isHidden"
+              >
+                get sentiment
+              </button>
             </p>
-            <p style="margin-top: 28px"><span>{{ sentimentComment }}</span></p>
-            <p style="margin-top: 5px" v-if="!isHidden">Refresh to generate new sentiment</p>
+            <p style="margin-top: 28px">
+              <span>{{ sentimentComment }}</span>
+            </p>
+            <p style="margin-top: 5px" v-if="!isHidden">
+              Refresh page to generate new sentiment
+            </p>
           </form>
           <p style="margin-top: 10px"></p>
-           <div class="btn-groupd">
-                <button class="btn btn-secondary mr-1" role="button" v-if="!isHidden" @click="drawChart">Total Sentiment</button>
-                <button class="btn btn-secondary mr-1" role="button" v-if="!isHidden">ML Sentiment</button>
-                <button class="btn btn-secondary mr-1" role="button" v-if="!isHidden">Lexicon Sentiment</button>
+          <div class="btn-groupd">
+            <button
+              class="btn btn-secondary mr-1"
+              role="button"
+              v-if="!isHidden"
+              @click="drawChart"
+            >
+              Total Sentiment
+            </button>
+            <button
+              class="btn btn-secondary mr-1"
+              role="button"
+              v-if="!isHidden"
+              @click="drawPieChart"
+            >
+              ML Sentiment
+            </button>
+            <button
+              class="btn btn-secondary mr-1"
+              role="button"
+              v-if="!isHidden"
+              @click="drawLexiChart"
+            >
+              Lexicon Sentiment
+            </button>
           </div>
-          <canvas v-if="!isHidden" id = 'example' height = '90' width = '400' ></canvas>
+          <div id="canvas-div">
+            <canvas
+              v-if="!isHidden"
+              id="example"
+              height="90"
+              width="400"
+            ></canvas>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
-<script lang="ts">
+<script>
 import axios from "axios";
 import { defineComponent } from "vue";
 import { Chart, registerables } from "chart.js";
@@ -51,13 +89,15 @@ export default defineComponent({
       totalNegativeSent: 0,
       totalPosMLSen: 0,
       totalNegMLSen: 0,
+      totalPosLexiSen: 0,
+      totalNegLexiSen: 0,
       isHidden: true,
-      isDisabled: false
+      isDisabled: false,
     };
   },
   methods: {
-    generateSentiment: function() {
-      this.isDisabled = true
+    generateSentiment: function () {
+      this.isDisabled = true;
       return axios
         .post("http://localhost:3000/api/yt", { video_ID: `${this.video_ID}` })
         .then((response) => {
@@ -66,9 +106,8 @@ export default defineComponent({
         .catch((error) => {
           window.alert(`The api returned an error: ${error}`);
         });
-        
     },
-    getSentiment: function() {
+    getSentiment: function () {
       return axios
         .get("http://localhost:3000/api/yt/get")
         .then((response) => {
@@ -77,70 +116,162 @@ export default defineComponent({
             response.data.sentScore.TotalPositiveComments;
           this.totalNegativeSent =
             response.data.sentScore.TotalNegativeComments;
-          this.totalPosMLSen = response.data.sentScore.
-          console.log(this.totalPositiveSent)
+          this.totalPosMLSen = response.data.sentScore.PositiveMLComments;
+          this.totalNegMLSen = response.data.sentScore.NegativeMLComments;
+          this.totalPosLexiSen = response.data.sentScore.PositiveLexiComments;
+          this.totalNegLexiSen = response.data.sentScore.NegativeLexiComments;
+          // console.log(this.totalPositiveSent)
           if (this.sentimentRank == 0) {
             return;
           } else if (this.sentimentRank == 1) {
-            return (this.sentimentComment = `This video has a good sentiment`);
+            return (this.sentimentComment = `This video has an overall good sentiment with ${this.totalPositiveSent} positive comments and ${this.totalNegativeSent} negative comments`);
           } else if (this.sentimentRank == -1) {
-            return (this.sentimentComment = `This video has a bad sentiment`);
+            return (this.sentimentComment = `This video has an overall bad sentiment with ${this.totalNegativeSent} negative comments and ${this.totalPositiveSent} positive comments`);
           }
-          console.log(this.totalPositiveSent)
-          
         })
-   
+
         .catch((error) => {
           window.alert(`The api returned an error: ${error}`);
         });
     },
-    drawChart: function() {
-      console.log("genchart" + this.totalPositiveSent)
-      Chart.register(...registerables)
-      let canvas: any = document.getElementById('example')
-        let ctx = canvas.getContext('2d')
-        const chrt = new Chart(ctx, {
-        type: 'bar',
-        data: {
-        labels: ["Positive Sentiment", "Negative Sentiment"],
-        datasets: [
-          {
-            label: "Overall Sentiment",
-            backgroundColor: ["green", "red"],
-            data: [this.totalPositiveSent, this.totalNegativeSent],
-          },
-          ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
+    drawChart: function () {
+      Chart.register(...registerables);
+      const tmpChart = Chart.getChart("example");
+      if (tmpChart) {
+        tmpChart.destroy();
       }
-      });
-        chrt.render();
-    },
-    drawPieChart: function() {
-      Chart.register(...registerables)
-      let canvas: any = document.getElementById('example')
-      let ctx = canvas.getContext('2d')
+      let canvas = document.getElementById("example");
+      let ctx = canvas.getContext("2d");
       const chrt = new Chart(ctx, {
-        type: 'pie',
+        type: "bar",
         data: {
-        labels: ["Positive Sentiment", "Negative Sentiment"],
-        datasets: [
-          {
-            label: "Overall Sentiment",
-            backgroundColor: ["green", "red"],
-            data: [this.totalPositiveSent, this.totalNegativeSent],
-          },
+          labels: ["Positive Sentiment", "Negative Sentiment"],
+          datasets: [
+            {
+              label: "Overall Sentiment",
+              backgroundColor: [
+                "rgba(255, 99, 132, 0.6)",
+                "rgba(153, 102, 255, 0.6)",
+              ],
+              data: [this.totalPositiveSent, this.totalNegativeSent],
+            },
           ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-      }
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            title: {
+              display: true,
+              position: "top",
+              text: "Positive and negative ovarall (summed) sentiment",
+            },
+            legend: {
+              position: "bottom",
+            },
+          },
+          scales: {
+          y: {
+            min: 0,
+            max: 50,
+          },
+        },
+        },
       });
-        chrt.render();
+      chrt.render();
     },
+    drawPieChart: function () {
+      Chart.register(...registerables);
+      const tmpChart = Chart.getChart("example");
+      if (tmpChart) {
+        tmpChart.destroy();
+      }
+      let canvas = document.getElementById("example");
+      let ctx = canvas.getContext("2d");
+      const chrt = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Positive ML Sentiment", "Negative ML Sentiment"],
+          datasets: [
+            {
+              label: "Overall ML Sentiment",
+              backgroundColor: [
+                "rgba(255, 99, 132, 0.6)",
+                "rgba(153, 102, 255, 0.6)",
+              ],
+              data: [this.totalPosMLSen, this.totalNegMLSen],
+            },
+          ],
+        },
+       options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            title: {
+              display: true,
+              position: "top",
+              text: "Positive and negative ML algorithm sentiment",
+            },
+            legend: {
+              position: "bottom",
+            },
+          },
+          scales: {
+          y: {
+            min: 0,
+            max: 50,
+          },
+        },
+        },
+      });
+      chrt.render();
+    },
+    drawLexiChart: function() {
+      Chart.register(...registerables);
+      const tmpChart = Chart.getChart("example");
+      if (tmpChart) {
+        tmpChart.destroy();
+      }
+      let canvas = document.getElementById("example");
+      let ctx = canvas.getContext("2d");
+      const chrt = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Positive Lexicon Sentiment", "Negative Lexicon Sentiment"],
+          datasets: [
+            {
+              label: "Overall ML Sentiment",
+              backgroundColor: [
+                "rgba(255, 99, 132, 0.6)",
+                "rgba(153, 102, 255, 0.6)",
+              ],
+              data: [this.totalPosLexiSen, this.totalNegLexiSen],
+            },
+          ],
+        },
+       options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            title: {
+              display: true,
+              position: "top",
+              text: "Positive and negative Lexi algorithm sentiment",
+            },
+            legend: {
+              position: "bottom",
+            },
+          },
+          scales: {
+          y: {
+            min: 0,
+            max: 50,
+          },
+        },
+        },
+      });
+      chrt.render();
+    }
   },
 });
 </script>
